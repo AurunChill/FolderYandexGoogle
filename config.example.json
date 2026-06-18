@@ -1,6 +1,6 @@
 {
-  "backup_folder": "ObsidianBackup",
-  "include_obsidian": true,
+  "source_path": "",
+  "backup_folder": "MyBackup",
   "include_git": false,
   "exclude": ["какая-то/папка", "файл.tmp"],
 

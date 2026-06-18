@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-backup.py — заливает весь Obsidian-vault на Yandex Disk и/или Google Drive,
-сохраняя ту же структуру папок. Запускать удобнее через backup.sh.
+backup.py — синхронизирует папку на Yandex Disk и/или Google Drive,
+сохраняя ту же структуру. Запускать удобнее через backup.sh.
 
   python backup.py --target yandex
   python backup.py --target google
   python backup.py --target both
 
-Настройки и токены — в config.json рядом с этим файлом (НЕ коммитить, НЕ заливать).
+Что синхронизировать — поле source_path в config.json (пусто = папка,
+в которой лежит этот инструмент). Настройки и токены — в config.json рядом
+с этим файлом (НЕ коммитить, НЕ заливать).
 Инкрементально: файл, уже существующий на облаке с тем же размером, пропускается.
 Удаление на облаке не выполняется (только добавление/обновление).
 """
@@ -18,8 +20,7 @@ import os
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent          # .../MouseRecordings/_backup
-VAULT = HERE.parent                             # .../MouseRecordings (корень vault)
+HERE = Path(__file__).resolve().parent          # папка с этим инструментом
 CONFIG = HERE / "config.json"
 GOOGLE_TOKEN = HERE / "token.json"
 
@@ -39,24 +40,21 @@ def save_config(cfg):
         json.dump(cfg, f, ensure_ascii=False, indent=2)
 
 
-def iter_files(cfg):
-    """Отдаёт пары (локальный путь, относительный путь от корня vault)."""
-    include_obsidian = cfg.get("include_obsidian", True)
+def iter_files(cfg, source):
+    """Отдаёт пары (локальный путь, относительный путь от корня источника)."""
     include_git = cfg.get("include_git", False)
     extra = set(cfg.get("exclude", []))
-    backup_dir = HERE.name                      # сам _backup исключаем всегда
+    self_dir = HERE.name                        # папку с самим инструментом не заливаем
 
-    for root, dirs, files in os.walk(VAULT):
-        rel = Path(root).relative_to(VAULT)
+    for root, dirs, files in os.walk(source):
+        rel = Path(root).relative_to(source)
         keep = []
         for d in dirs:
             child = (rel / d) if rel != Path(".") else Path(d)
             top = child.parts[0]
-            if top == backup_dir:               # не заливаем venv/токены/сам скрипт
+            if top == self_dir:                 # не заливаем venv/токены/сам скрипт
                 continue
             if top == ".git" and not include_git:
-                continue
-            if top == ".obsidian" and not include_obsidian:
                 continue
             if d in extra or child.as_posix() in extra:
                 continue
@@ -260,13 +258,16 @@ def main():
     args = ap.parse_args()
 
     cfg = load_config()
-    print(f"Vault: {VAULT}")
-    print(f"Папка бэкапа на облаке: {cfg['backup_folder']}")
+    source = Path(cfg.get("source_path") or HERE.parent).expanduser().resolve()
+    if not source.is_dir():
+        sys.exit(f"Источник не найден (source_path): {source}")
+    print(f"Источник: {source}")
+    print(f"Папка на облаке: {cfg['backup_folder']}")
 
     if args.target in ("yandex", "both"):
-        backup_yandex(cfg, list(iter_files(cfg)))
+        backup_yandex(cfg, list(iter_files(cfg, source)))
     if args.target in ("google", "both"):
-        backup_google(cfg, list(iter_files(cfg)))
+        backup_google(cfg, list(iter_files(cfg, source)))
 
     print("Готово.")
 
