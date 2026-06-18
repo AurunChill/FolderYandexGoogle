@@ -1,0 +1,17 @@
+{
+  "backup_folder": "ObsidianBackup",
+  "include_obsidian": true,
+  "include_git": false,
+  "exclude": ["какая-то/папка", "файл.tmp"],
+
+  "yandex": {
+    "client_id": "ВАШ_CLIENT_ID_С_oauth.yandex.ru",
+    "client_secret": "ВАШ_CLIENT_SECRET",
+    "token": ""
+  },
+
+  "google": {
+    "client_id": "ВАШ_CLIENT_ID.apps.googleusercontent.com",
+    "client_secret": "ВАШ_GOOGLE_CLIENT_SECRET"
+  }
+}
